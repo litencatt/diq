@@ -53,50 +53,55 @@ to quickly create a Cobra application.`,
 		domainName := args[0]
 		fmt.Println((domainName))
 
-		var res []string
+		for _, ns := range config.Nameservers {
+			fmt.Println("@" + ns)
+			r := &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{
+						Timeout: 10 * time.Second,
+					}
+					return d.DialContext(ctx, "udp", ns+":53")
+				},
+			}
 
-		//nameServer := "8.8.8.8"
-		nameServer := "dns01.muumuu-domain.com"
-		r := &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				d := net.Dialer{
-					Timeout: 10 * time.Second,
+			for _, qs := range config.Query {
+				switch qs {
+				case "NS":
+					nss, err := r.LookupNS(context.Background(), domainName)
+					if err != nil {
+						fmt.Println("LookupNS error")
+						os.Exit(1)
+					}
+					fmt.Print("  NS: ")
+					for _, ns := range nss {
+						//res = append(res, ns.Host)
+						fmt.Println("  " + ns.Host)
+					}
+				case "A":
+					hosts, err := r.LookupHost(context.Background(), domainName)
+					if err != nil {
+						fmt.Println("LookupHost error")
+					}
+					fmt.Print("A:")
+					for _, host := range hosts {
+						//res = append(res, host)
+						fmt.Println("\t" + host)
+					}
+				case "MX":
+					mxNss, err := r.LookupMX(context.Background(), domainName)
+					if err != nil {
+						fmt.Println("LookupMX error")
+					}
+					fmt.Print("MX:")
+					for _, ns := range mxNss {
+						//res = append(res, ns.Host)
+						fmt.Println("\t" + ns.Host)
+					}
 				}
-				return d.DialContext(ctx, "udp", nameServer+":53")
-			},
-		}
 
-		// NS
-		nss, err := r.LookupNS(context.Background(), domainName)
-		if err != nil {
-			fmt.Println("LookupNS error")
+			}
 		}
-		for _, ns := range nss {
-			res = append(res, ns.Host)
-			//fmt.Println(ns.Host)
-		}
-
-		// A
-		hosts, err := net.LookupHost(domainName)
-		if err != nil {
-			fmt.Println("LookupHost error")
-		}
-		for _, host := range hosts {
-			res = append(res, host)
-			//fmt.Println(host)
-		}
-
-		// MX
-		mxNss, err := net.LookupMX(domainName)
-		if err != nil {
-			fmt.Println("LookupMX error")
-		}
-		for _, ns := range mxNss {
-			res = append(res, ns.Host)
-			//fmt.Println(ns.Host)
-		}
-		fmt.Println(res)
 	},
 }
 
