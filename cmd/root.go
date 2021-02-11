@@ -16,8 +16,11 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"net"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -41,7 +44,53 @@ to quickly create a Cobra application.`,
 	// has an action associated with it:
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println((args[0]))
+		domainName := args[0]
+		fmt.Println((domainName))
+
+		var res []string
+
+		//nameServer := "8.8.8.8"
+		nameServer := "dns01.muumuu-domain.com"
+		r := &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: 10 * time.Second,
+				}
+				return d.DialContext(ctx, "udp", nameServer+":53")
+			},
+		}
+
+		// NS
+		nss, err := r.LookupNS(context.Background(), domainName)
+		if err != nil {
+			fmt.Println("LookupNS error")
+		}
+		for _, ns := range nss {
+			res = append(res, ns.Host)
+			//fmt.Println(ns.Host)
+		}
+
+		// A
+		hosts, err := net.LookupHost(domainName)
+		if err != nil {
+			fmt.Println("LookupHost error")
+		}
+		for _, host := range hosts {
+			res = append(res, host)
+			//fmt.Println(host)
+		}
+
+		// MX
+		mxNss, err := net.LookupMX(domainName)
+		if err != nil {
+			fmt.Println("LookupMX error")
+		}
+		for _, ns := range mxNss {
+			res = append(res, ns.Host)
+			//fmt.Println(ns.Host)
+		}
+		fmt.Println(res)
 	},
 }
 
