@@ -1,0 +1,7 @@
+nameservers:
+  - 8.8.8.8
+
+query:
+  - NS
+  - A
+  - MX
