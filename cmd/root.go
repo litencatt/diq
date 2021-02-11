@@ -24,11 +24,17 @@ import (
 
 	"github.com/spf13/cobra"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
+
+type Config struct {
+	Nameservers []string
+	Query       []string
+}
+
+var config Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -124,21 +130,25 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
-		home, err := homedir.Dir()
+		/*home, err := homedir.Dir()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
-		}
+		}*/
 
 		// Search config in home directory with name ".diq" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".diq")
+		viper.SetConfigFile("~/$GOPATH/src/github.com/litencatt/diq/")
+		viper.SetConfigName("diq")
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	//viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	}
+
+	if err := viper.Unmarshal(&config); err != nil {
+		fmt.Println(err)
 	}
 }
