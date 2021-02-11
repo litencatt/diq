@@ -89,12 +89,12 @@ to quickly create a Cobra application.`,
 						fmt.Println("\t" + host)
 					}
 				case "MX":
-					mxNss, err := r.LookupMX(context.Background(), domainName)
+					nss, err := r.LookupMX(context.Background(), domainName)
 					if err != nil {
 						fmt.Println("LookupMX error")
 					}
 					fmt.Print("MX:")
-					for _, ns := range mxNss {
+					for _, ns := range nss {
 						//res = append(res, ns.Host)
 						fmt.Println("\t" + ns.Host)
 					}
