@@ -55,54 +55,61 @@ to quickly create a Cobra application.`,
 
 		for _, ns := range config.Nameservers {
 			fmt.Println("@" + ns)
-			r := &net.Resolver{
-				PreferGo: true,
-				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-					d := net.Dialer{
-						Timeout: 10 * time.Second,
-					}
-					return d.DialContext(ctx, "udp", ns+":53")
-				},
-			}
-
+			r := resolver(ns)
 			for _, qs := range config.Query {
-				switch qs {
-				case "NS":
-					nss, err := r.LookupNS(context.Background(), domainName)
-					if err != nil {
-						fmt.Println("LookupNS error")
-						os.Exit(1)
-					}
-					fmt.Print("  NS: ")
-					for _, ns := range nss {
-						//res = append(res, ns.Host)
-						fmt.Println("  " + ns.Host)
-					}
-				case "A":
-					hosts, err := r.LookupHost(context.Background(), domainName)
-					if err != nil {
-						fmt.Println("LookupHost error")
-					}
-					fmt.Print("A:")
-					for _, host := range hosts {
-						//res = append(res, host)
-						fmt.Println("\t" + host)
-					}
-				case "MX":
-					nss, err := r.LookupMX(context.Background(), domainName)
-					if err != nil {
-						fmt.Println("LookupMX error")
-					}
-					fmt.Print("MX:")
-					for _, ns := range nss {
-						//res = append(res, ns.Host)
-						fmt.Println("\t" + ns.Host)
-					}
-				}
+				lookupRecord(domainName, qs, r)
 			}
 			fmt.Println("")
 		}
 	},
+}
+
+func resolver(ns string) *net.Resolver {
+	return &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 10 * time.Second,
+			}
+			return d.DialContext(ctx, "udp", ns+":53")
+		},
+	}
+}
+
+func lookupRecord(domainName string, q string, r *net.Resolver) {
+	switch q {
+	case "NS":
+		nss, err := r.LookupNS(context.Background(), domainName)
+		if err != nil {
+			fmt.Println("LookupNS error")
+			os.Exit(1)
+		}
+		fmt.Print("  NS: ")
+		for _, ns := range nss {
+			//res = append(res, ns.Host)
+			fmt.Println("  " + ns.Host)
+		}
+	case "A":
+		hosts, err := r.LookupHost(context.Background(), domainName)
+		if err != nil {
+			fmt.Println("LookupHost error")
+		}
+		fmt.Print("A:")
+		for _, host := range hosts {
+			//res = append(res, host)
+			fmt.Println("\t" + host)
+		}
+	case "MX":
+		nss, err := r.LookupMX(context.Background(), domainName)
+		if err != nil {
+			fmt.Println("LookupMX error")
+		}
+		fmt.Print("MX:")
+		for _, ns := range nss {
+			//res = append(res, ns.Host)
+			fmt.Println("\t" + ns.Host)
+		}
+	}
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
