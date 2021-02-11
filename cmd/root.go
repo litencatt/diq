@@ -99,8 +99,8 @@ to quickly create a Cobra application.`,
 						fmt.Println("\t" + ns.Host)
 					}
 				}
-
 			}
+			fmt.Println("")
 		}
 	},
 }
