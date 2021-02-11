@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -36,8 +37,8 @@ type Config struct {
 }
 
 type LookupResults struct {
-	DomainName string
-	Results    []LookupResult
+	DomainName string         `json:domainName`
+	Results    []LookupResult `json:results`
 }
 type LookupResult struct {
 	Nameserver string
@@ -69,8 +70,14 @@ to quickly create a Cobra application.`,
 			}
 			lrs.Results = append(lrs.Results, LookupResult{"@" + ns, records})
 		}
-		printResults(lrs)
+		//printResults(lrs)
+		printJSON(lrs)
 	},
+}
+
+func printJSON(lrs LookupResults) {
+	json, _ := json.Marshal(lrs)
+	fmt.Println(string(json))
 }
 
 func printResults(lrs LookupResults) {
@@ -118,7 +125,7 @@ func lookupRecord(domainName string, q string, r *net.Resolver) string {
 	case "MX":
 		res, err := r.LookupMX(context.Background(), domainName)
 		if err != nil {
-			return "LookupHost error"
+			return "LookupMX error"
 		}
 		for _, ns := range res {
 			result = append(result, "MX\t"+ns.Host)
