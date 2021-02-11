@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -34,6 +35,15 @@ type Config struct {
 	Query       []string
 }
 
+type LookupResults struct {
+	DomainName string
+	Results    []LookupResult
+}
+type LookupResult struct {
+	Nameserver string
+	Records    []string
+}
+
 var config Config
 
 // rootCmd represents the base command when called without any subcommands
@@ -46,25 +56,35 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		domainName := args[0]
-		fmt.Println((domainName))
-
+		lrs := LookupResults{}
+		lrs.DomainName = domainName
 		for _, ns := range config.Nameservers {
-			fmt.Println("@" + ns)
-			r := resolver(ns)
-			for _, qs := range config.Query {
-				lookupRecord(domainName, qs, r)
+			var records []string
+			r := getResolver(ns)
+			for _, query := range config.Query {
+				records = append(records, lookupRecord(domainName, query, r))
 			}
-			fmt.Println("")
+			lrs.Results = append(lrs.Results, LookupResult{"@" + ns, records})
 		}
+		printResults(lrs)
 	},
 }
 
-func resolver(ns string) *net.Resolver {
+func printResults(lrs LookupResults) {
+	fmt.Println(lrs.DomainName)
+	for _, lr := range lrs.Results {
+		fmt.Println(lr.Nameserver)
+		for _, record := range lr.Records {
+			fmt.Println(record)
+		}
+		fmt.Println("")
+	}
+}
+
+func getResolver(ns string) *net.Resolver {
 	return &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -76,40 +96,35 @@ func resolver(ns string) *net.Resolver {
 	}
 }
 
-func lookupRecord(domainName string, q string, r *net.Resolver) {
+func lookupRecord(domainName string, q string, r *net.Resolver) string {
+	var result []string
 	switch q {
 	case "NS":
-		nss, err := r.LookupNS(context.Background(), domainName)
+		res, err := r.LookupNS(context.Background(), domainName)
 		if err != nil {
-			fmt.Println("LookupNS error")
-			os.Exit(1)
+			return "LookupNS error"
 		}
-		fmt.Print("  NS: ")
-		for _, ns := range nss {
-			//res = append(res, ns.Host)
-			fmt.Println("  " + ns.Host)
+		for _, ns := range res {
+			result = append(result, "NS:\t"+ns.Host)
 		}
 	case "A":
-		hosts, err := r.LookupHost(context.Background(), domainName)
+		res, err := r.LookupHost(context.Background(), domainName)
 		if err != nil {
-			fmt.Println("LookupHost error")
+			return "LookupHost error"
 		}
-		fmt.Print("A:")
-		for _, host := range hosts {
-			//res = append(res, host)
-			fmt.Println("\t" + host)
+		for _, host := range res {
+			result = append(result, "A\t"+host)
 		}
 	case "MX":
-		nss, err := r.LookupMX(context.Background(), domainName)
+		res, err := r.LookupMX(context.Background(), domainName)
 		if err != nil {
-			fmt.Println("LookupMX error")
+			return "LookupHost error"
 		}
-		fmt.Print("MX:")
-		for _, ns := range nss {
-			//res = append(res, ns.Host)
-			fmt.Println("\t" + ns.Host)
+		for _, ns := range res {
+			result = append(result, "MX\t"+ns.Host)
 		}
 	}
+	return strings.Join(result, ",")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
