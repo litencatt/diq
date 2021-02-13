@@ -34,10 +34,13 @@ type Config struct {
 }
 
 type LookupResult struct {
-	DomainName string         `json:domainName`
-	Result     []LookupRecord `json:results`
+	Domains []Domain `json:domains`
 }
 
+type Domain struct {
+	DomainName string
+	Result     []LookupRecord
+}
 type LookupRecord struct {
 	Nameserver string
 	Records    []Record
@@ -52,7 +55,9 @@ var cfgFile string
 var config Config
 var format string
 var qtype string
+var d Domain
 var lres LookupResult
+var domainNames []string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -66,7 +71,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		setDomainName(args)
+		setDomainNames(args)
 		switch format {
 		case "stdout":
 			lookupRecords(config, &lres)
@@ -81,8 +86,10 @@ to quickly create a Cobra application.`,
 	},
 }
 
-func setDomainName(args []string) {
-	lres.DomainName = args[0]
+func setDomainNames(args []string) {
+	for _, domainName := range args {
+		domainNames = append(domainNames, domainName)
+	}
 }
 
 func printJSON(lres LookupResult) {
@@ -91,15 +98,17 @@ func printJSON(lres LookupResult) {
 }
 
 func printStdout(lres LookupResult) {
-	fmt.Println(lres.DomainName)
-	for _, lr := range lres.Result {
-		fmt.Println(lr.Nameserver)
-		for _, record := range lr.Records {
-			for _, r := range record.Record {
-				fmt.Println(record.Type + "\t" + r)
+	for _, domain := range lres.Domains {
+		fmt.Println(domain.DomainName)
+		for _, lr := range domain.Result {
+			fmt.Println(lr.Nameserver)
+			for _, record := range lr.Records {
+				for _, r := range record.Record {
+					fmt.Println(record.Type + "\t" + r)
+				}
 			}
+			fmt.Println("")
 		}
-		fmt.Println("")
 	}
 }
 
@@ -116,14 +125,19 @@ func getResolver(ns string) *net.Resolver {
 }
 
 func lookupRecords(config Config, lres *LookupResult) {
-	for _, ns := range config.Nameservers {
-		var records []Record
-		r := getResolver(ns)
-		for _, qtype := range getQtypes() {
-			lr := lookupRecord(lres.DomainName, qtype, r)
-			records = append(records, Record{qtype, lr})
+	for _, domainName := range domainNames {
+		d := Domain{}
+		d.DomainName = domainName
+		for _, ns := range config.Nameservers {
+			var records []Record
+			r := getResolver(ns)
+			for _, qtype := range getQtypes() {
+				lr := lookupRecord(d.DomainName, qtype, r)
+				records = append(records, Record{qtype, lr})
+			}
+			d.Result = append(d.Result, LookupRecord{"@" + ns, records})
 		}
-		lres.Result = append(lres.Result, LookupRecord{"@" + ns, records})
+		lres.Domains = append(lres.Domains, d)
 	}
 }
 
