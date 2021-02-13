@@ -175,6 +175,14 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 		for _, ns := range res {
 			result = append(result, ns.Host)
 		}
+	case "TXT":
+		res, err := r.LookupTXT(context.Background(), domainName)
+		if err != nil {
+			return []string{"LookupTXT error"}
+		}
+		for _, txt := range res {
+			result = append(result, txt)
+		}
 	}
 	return result
 }
