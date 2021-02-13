@@ -202,7 +202,6 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.diq.yml)")
 
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.Flags().StringVarP(&format, "format", "f", "stdout", "output format. [stdout|json]")
 	rootCmd.Flags().StringVarP(&qtype, "qtype", "q", "", "lookup query types. (e.g. -q a,mx)")
 }
