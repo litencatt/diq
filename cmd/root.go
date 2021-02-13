@@ -55,7 +55,6 @@ var cfgFile string
 var config Config
 var format string
 var qtype string
-var d Domain
 var lres LookupResult
 var domainNames []string
 
