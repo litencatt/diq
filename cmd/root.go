@@ -31,7 +31,7 @@ var cfgFile string
 
 type Config struct {
 	Nameservers []string
-	Query       []string
+	Qtypes      []string
 }
 
 type LookupResult struct {
@@ -118,7 +118,7 @@ func lookupRecords(config Config, lres *LookupResult) {
 	for _, ns := range config.Nameservers {
 		var records []Record
 		r := getResolver(ns)
-		for _, qtype := range config.Query {
+		for _, qtype := range config.Qtypes {
 			lr := lookupRecord(lres.DomainName, qtype, r)
 			records = append(records, Record{qtype, lr})
 		}
