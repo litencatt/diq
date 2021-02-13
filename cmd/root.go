@@ -41,6 +41,7 @@ type Domain struct {
 	DomainName string
 	Result     []LookupRecord
 }
+
 type LookupRecord struct {
 	Nameserver string
 	Records    []Record
@@ -91,11 +92,6 @@ func setDomainNames(args []string) {
 	}
 }
 
-func printJSON(lres LookupResult) {
-	json, _ := json.Marshal(lres)
-	fmt.Println(string(json))
-}
-
 func printStdout(lres LookupResult) {
 	for _, domain := range lres.Domains {
 		fmt.Println(domain.DomainName)
@@ -109,6 +105,11 @@ func printStdout(lres LookupResult) {
 			fmt.Println("")
 		}
 	}
+}
+
+func printJSON(lres LookupResult) {
+	json, _ := json.Marshal(lres)
+	fmt.Println(string(json))
 }
 
 func getResolver(ns string) *net.Resolver {
