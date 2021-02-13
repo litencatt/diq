@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -42,7 +41,12 @@ type LookupResult struct {
 
 type LookupRecord struct {
 	Nameserver string
-	Records    []string
+	Records    []Record
+}
+
+type Record struct {
+	Type   string
+	Record []string
 }
 
 var config Config
@@ -80,17 +84,6 @@ func setDomainName(args []string) {
 	lres.DomainName = args[0]
 }
 
-func lookupRecords(config Config, lres *LookupResult) {
-	for _, ns := range config.Nameservers {
-		var records []string
-		r := getResolver(ns)
-		for _, query := range config.Query {
-			records = append(records, lookupRecord(lres.DomainName, query, r))
-		}
-		lres.Result = append(lres.Result, LookupRecord{"@" + ns, records})
-	}
-}
-
 func printJSON(lres LookupResult) {
 	json, _ := json.Marshal(lres)
 	fmt.Println(string(json))
@@ -101,7 +94,9 @@ func printStdout(lres LookupResult) {
 	for _, lr := range lres.Result {
 		fmt.Println(lr.Nameserver)
 		for _, record := range lr.Records {
-			fmt.Println(record)
+			for _, r := range record.Record {
+				fmt.Println(record.Type + "\t" + r)
+			}
 		}
 		fmt.Println("")
 	}
@@ -119,35 +114,47 @@ func getResolver(ns string) *net.Resolver {
 	}
 }
 
-func lookupRecord(domainName string, q string, r *net.Resolver) string {
+func lookupRecords(config Config, lres *LookupResult) {
+	for _, ns := range config.Nameservers {
+		var records []Record
+		r := getResolver(ns)
+		for _, qtype := range config.Query {
+			lr := lookupRecord(lres.DomainName, qtype, r)
+			records = append(records, Record{qtype, lr})
+		}
+		lres.Result = append(lres.Result, LookupRecord{"@" + ns, records})
+	}
+}
+
+func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	var result []string
-	switch q {
+	switch qtype {
 	case "NS":
 		res, err := r.LookupNS(context.Background(), domainName)
 		if err != nil {
-			return "LookupNS error"
+			return []string{"LookupNS error"}
 		}
 		for _, ns := range res {
-			result = append(result, "NS:\t"+ns.Host)
+			result = append(result, ns.Host)
 		}
 	case "A":
 		res, err := r.LookupHost(context.Background(), domainName)
 		if err != nil {
-			return "LookupHost error"
+			return []string{"LookupHost error"}
 		}
 		for _, host := range res {
-			result = append(result, "A\t"+host)
+			result = append(result, host)
 		}
 	case "MX":
 		res, err := r.LookupMX(context.Background(), domainName)
 		if err != nil {
-			return "LookupMX error"
+			return []string{"LookupMX error"}
 		}
 		for _, ns := range res {
-			result = append(result, "MX\t"+ns.Host)
+			result = append(result, ns.Host)
 		}
 	}
-	return strings.Join(result, ",")
+	return result
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
