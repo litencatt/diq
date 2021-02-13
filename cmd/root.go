@@ -36,11 +36,12 @@ type Config struct {
 	Query       []string
 }
 
-type LookupResults struct {
-	DomainName string         `json:domainName`
-	Results    []LookupResult `json:results`
-}
 type LookupResult struct {
+	DomainName string         `json:domainName`
+	Result     []LookupRecord `json:results`
+}
+
+type LookupRecord struct {
 	Nameserver string
 	Records    []string
 }
@@ -61,7 +62,7 @@ to quickly create a Cobra application.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		domainName := args[0]
-		lrs := LookupResults{}
+		lrs := LookupResult{}
 		lrs.DomainName = domainName
 		for _, ns := range config.Nameservers {
 			var records []string
@@ -69,7 +70,7 @@ to quickly create a Cobra application.`,
 			for _, query := range config.Query {
 				records = append(records, lookupRecord(domainName, query, r))
 			}
-			lrs.Results = append(lrs.Results, LookupResult{"@" + ns, records})
+			lrs.Result = append(lrs.Result, LookupRecord{"@" + ns, records})
 		}
 
 		switch format {
@@ -83,14 +84,14 @@ to quickly create a Cobra application.`,
 	},
 }
 
-func printJSON(lrs LookupResults) {
+func printJSON(lrs LookupResult) {
 	json, _ := json.Marshal(lrs)
 	fmt.Println(string(json))
 }
 
-func printResults(lrs LookupResults) {
+func printResults(lrs LookupResult) {
 	fmt.Println(lrs.DomainName)
-	for _, lr := range lrs.Results {
+	for _, lr := range lrs.Result {
 		fmt.Println(lr.Nameserver)
 		for _, record := range lr.Records {
 			fmt.Println(record)
