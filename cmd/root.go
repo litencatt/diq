@@ -21,13 +21,12 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-var cfgFile string
 
 type Config struct {
 	Nameservers []string
@@ -49,8 +48,10 @@ type Record struct {
 	Record []string
 }
 
+var cfgFile string
 var config Config
 var format string
+var qtype string
 var lres LookupResult
 
 // rootCmd represents the base command when called without any subcommands
@@ -118,12 +119,19 @@ func lookupRecords(config Config, lres *LookupResult) {
 	for _, ns := range config.Nameservers {
 		var records []Record
 		r := getResolver(ns)
-		for _, qtype := range config.Qtypes {
+		for _, qtype := range getQtypes() {
 			lr := lookupRecord(lres.DomainName, qtype, r)
 			records = append(records, Record{qtype, lr})
 		}
 		lres.Result = append(lres.Result, LookupRecord{"@" + ns, records})
 	}
+}
+
+func getQtypes() []string {
+	if len(qtype) != 0 {
+		return strings.Split(strings.ToUpper(qtype), ",")
+	}
+	return config.Qtypes
 }
 
 func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
@@ -173,6 +181,7 @@ func init() {
 
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.Flags().StringVarP(&format, "format", "f", "stdout", "output format. [stdout|json]")
+	rootCmd.Flags().StringVarP(&qtype, "qtype", "q", "", "lookup query types. (e.g. -q a,mx)")
 }
 
 // initConfig reads in config file and ENV variables if set.
