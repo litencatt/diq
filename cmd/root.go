@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-
 	"github.com/spf13/viper"
 )
 
@@ -48,6 +47,7 @@ type LookupRecord struct {
 
 var config Config
 var format string
+var lres LookupResult
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -61,37 +61,44 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		domainName := args[0]
-		lrs := LookupResult{}
-		lrs.DomainName = domainName
-		for _, ns := range config.Nameservers {
-			var records []string
-			r := getResolver(ns)
-			for _, query := range config.Query {
-				records = append(records, lookupRecord(domainName, query, r))
-			}
-			lrs.Result = append(lrs.Result, LookupRecord{"@" + ns, records})
-		}
-
+		setDomainName(args)
 		switch format {
 		case "stdout":
-			printResults(lrs)
+			lookupRecords(config, &lres)
+			printStdout(lres)
 		case "json":
-			printJSON(lrs)
+			lookupRecords(config, &lres)
+			printJSON(lres)
 		default:
-			printResults(lrs)
+			lookupRecords(config, &lres)
+			printStdout(lres)
 		}
 	},
 }
 
-func printJSON(lrs LookupResult) {
-	json, _ := json.Marshal(lrs)
+func setDomainName(args []string) {
+	lres.DomainName = args[0]
+}
+
+func lookupRecords(config Config, lres *LookupResult) {
+	for _, ns := range config.Nameservers {
+		var records []string
+		r := getResolver(ns)
+		for _, query := range config.Query {
+			records = append(records, lookupRecord(lres.DomainName, query, r))
+		}
+		lres.Result = append(lres.Result, LookupRecord{"@" + ns, records})
+	}
+}
+
+func printJSON(lres LookupResult) {
+	json, _ := json.Marshal(lres)
 	fmt.Println(string(json))
 }
 
-func printResults(lrs LookupResult) {
-	fmt.Println(lrs.DomainName)
-	for _, lr := range lrs.Result {
+func printStdout(lres LookupResult) {
+	fmt.Println(lres.DomainName)
+	for _, lr := range lres.Result {
 		fmt.Println(lr.Nameserver)
 		for _, record := range lr.Records {
 			fmt.Println(record)
@@ -155,14 +162,8 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.diq.yaml)")
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.Flags().StringVarP(&format, "format", "f", "stdout", "output format. [stdout|json]")
 }
