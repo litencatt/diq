@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/litencatt/diq/version"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -62,8 +63,9 @@ var domainNames []string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:  "diq",
-	Args: cobra.MinimumNArgs(1),
+	Use:     "diq",
+	Version: version.Version,
+	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		setDomainNames(args)
 		switch format {
