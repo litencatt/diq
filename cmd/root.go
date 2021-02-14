@@ -211,8 +211,23 @@ func initConfig() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+		configFilePath := home + "/.diq.yml"
+		file, err := os.OpenFile(configFilePath, os.O_RDONLY, 0)
+		if err != nil {
+			if os.IsNotExist(err) {
+				file, err := os.OpenFile(configFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+				if err != nil {
+					fmt.Println(err)
+				}
+				defer file.Close()
 
-		viper.SetConfigFile(home + "/.diq.yml")
+				file.WriteString("nameservers:\n  - 8.8.8.8\nqtypes:\n  - A\n")
+				fmt.Println("Create: " + configFilePath + "\n")
+			}
+		}
+		defer file.Close()
+
+		viper.SetConfigFile(configFilePath)
 	}
 
 	// If a config file is found, read it in.
