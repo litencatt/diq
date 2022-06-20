@@ -63,7 +63,7 @@ var cfgFile string
 var config Config
 var format string
 var qtype string
-var lres LookupResult
+var lr LookupResult
 var domainNames []string
 
 // rootCmd represents the base command when called without any subcommands
@@ -75,14 +75,14 @@ var rootCmd = &cobra.Command{
 		setDomainNames(args)
 		switch format {
 		case "stdout":
-			lookupRecords(config, &lres)
-			printStdout(lres)
+			lookupRecords(config, &lr)
+			printStdout(lr)
 		case "json":
-			lookupRecords(config, &lres)
-			printJSON(lres)
+			lookupRecords(config, &lr)
+			printJSON(lr)
 		default:
-			lookupRecords(config, &lres)
-			printStdout(lres)
+			lookupRecords(config, &lr)
+			printStdout(lr)
 		}
 	},
 }
@@ -93,8 +93,8 @@ func setDomainNames(args []string) {
 	}
 }
 
-func printStdout(lres LookupResult) {
-	for _, domain := range lres.Domains {
+func printStdout(lr LookupResult) {
+	for _, domain := range lr.Domains {
 		fmt.Println(domain.DomainName)
 		for _, lr := range domain.Result {
 			fmt.Println(lr.Nameserver)
@@ -108,11 +108,12 @@ func printStdout(lres LookupResult) {
 	}
 }
 
-func printJSON(lres LookupResult) {
-	json, _ := json.Marshal(lres)
+func printJSON(lr LookupResult) {
+	json, _ := json.Marshal(lr)
 	fmt.Println(string(json))
 }
 
+// DNSへの問い合わせ用Resolver
 func getResolver(ns string) *net.Resolver {
 	return &net.Resolver{
 		PreferGo: true,
@@ -125,7 +126,7 @@ func getResolver(ns string) *net.Resolver {
 	}
 }
 
-func lookupRecords(config Config, lres *LookupResult) {
+func lookupRecords(config Config, lr *LookupResult) {
 	for _, domainName := range domainNames {
 		d := Domain{}
 		d.DomainName = domainName
@@ -134,11 +135,13 @@ func lookupRecords(config Config, lres *LookupResult) {
 			r := getResolver(ns)
 			for _, qtype := range getQtypes() {
 				lr := lookupRecord(d.DomainName, qtype, r)
-				records = append(records, Record{qtype, lr})
+				if lr != nil {
+					records = append(records, Record{qtype, lr})
+				}
 			}
 			d.Result = append(d.Result, LookupRecord{"@" + ns, records})
 		}
-		lres.Domains = append(lres.Domains, d)
+		lr.Domains = append(lr.Domains, d)
 	}
 }
 
@@ -155,7 +158,7 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	case "NS":
 		res, err := r.LookupNS(context.Background(), domainName)
 		if err != nil {
-			return []string{"LookupNS error"}
+			return nil
 		}
 		for _, ns := range res {
 			result = append(result, ns.Host)
@@ -163,7 +166,7 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	case "A":
 		res, err := r.LookupHost(context.Background(), domainName)
 		if err != nil {
-			return []string{"LookupHost error"}
+			return nil
 		}
 		for _, host := range res {
 			result = append(result, host)
@@ -171,7 +174,7 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	case "MX":
 		res, err := r.LookupMX(context.Background(), domainName)
 		if err != nil {
-			return []string{"LookupMX error"}
+			return nil
 		}
 		for _, ns := range res {
 			result = append(result, ns.Host)
@@ -179,7 +182,7 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	case "TXT":
 		res, err := r.LookupTXT(context.Background(), domainName)
 		if err != nil {
-			return []string{"LookupTXT error"}
+			return nil
 		}
 		for _, txt := range res {
 			result = append(result, txt)
