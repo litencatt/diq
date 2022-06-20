@@ -135,7 +135,9 @@ func lookupRecords(config Config, lr *LookupResult) {
 			r := getResolver(ns)
 			for _, qtype := range getQtypes() {
 				lr := lookupRecord(d.DomainName, qtype, r)
-				records = append(records, Record{qtype, lr})
+				if lr != nil {
+					records = append(records, Record{qtype, lr})
+				}
 			}
 			d.Result = append(d.Result, LookupRecord{"@" + ns, records})
 		}
@@ -156,7 +158,7 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	case "NS":
 		res, err := r.LookupNS(context.Background(), domainName)
 		if err != nil {
-			return []string{"LookupNS error"}
+			return nil
 		}
 		for _, ns := range res {
 			result = append(result, ns.Host)
@@ -164,7 +166,7 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	case "A":
 		res, err := r.LookupHost(context.Background(), domainName)
 		if err != nil {
-			return []string{"LookupHost error"}
+			return nil
 		}
 		for _, host := range res {
 			result = append(result, host)
@@ -172,7 +174,7 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	case "MX":
 		res, err := r.LookupMX(context.Background(), domainName)
 		if err != nil {
-			return []string{"LookupMX error"}
+			return nil
 		}
 		for _, ns := range res {
 			result = append(result, ns.Host)
@@ -180,7 +182,7 @@ func lookupRecord(domainName string, qtype string, r *net.Resolver) []string {
 	case "TXT":
 		res, err := r.LookupTXT(context.Background(), domainName)
 		if err != nil {
-			return []string{"LookupTXT error"}
+			return nil
 		}
 		for _, txt := range res {
 			result = append(result, txt)
